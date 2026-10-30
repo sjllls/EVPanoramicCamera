@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 简约风格摄影机图标（灰白色）：浅灰白圆角底 + 灰色摄像机剪影 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 圆角方形底（灰白） -->
+    <path
+        android:fillColor="#ECEFF1"
+        android:pathData="M6,0h12a6,6 0 0 1 6,6v12a6,6 0 0 1 -6,6H6a6,6 0 0 1 -6,-6V6a6,6 0 0 1 6,-6z" />
+
+    <!-- 摄像机剪影（居中缩放，深灰） -->
+    <group
+        android:scaleX="0.52"
+        android:scaleY="0.52"
+        android:pivotX="12"
+        android:pivotY="12">
+        <path
+            android:fillColor="#546E7A"
+            android:pathData="M17,10.5V7c0,-0.55 -0.45,-1 -1,-1H4c-0.55,0 -1,0.45 -1,1v10c0,0.55 0.45,1 1,1h12c0.55,0 1,-0.45 1,-1v-3.5l4,4v-11l-4,4z" />
+    </group>
+
+</vector>

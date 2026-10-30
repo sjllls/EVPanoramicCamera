@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/title_main"
+        android:textColor="@color/text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="@string/paused"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toEndOf="@id/tvTitle"
+        app:layout_constraintTop_toTopOf="@id/tvTitle" />
+
+    <!-- 右上角：半透明设置按钮 -->
+    <ImageButton
+        android:id="@+id/btnSettings"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="20dp"
+        android:alpha="0.55"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="设置"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_settings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- 摄像头预览网格 -->
+    <GridLayout
+        android:id="@+id/gridPreviews"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:columnCount="2"
+        app:layout_constraintBottom_toTopOf="@id/controlBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
+
+    <!-- 底部控制栏 -->
+    <LinearLayout
+        android:id="@+id/controlBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageButton
+            android:id="@+id/btnPause"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="28dp"
+            android:alpha="0.85"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="暂停"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_pause" />
+
+        <!-- 录制主按钮 -->
+        <ImageButton
+            android:id="@+id/btnRecord"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="开始录制"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_play_circle" />
+
+        <ImageButton
+            android:id="@+id/btnStop"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="28dp"
+            android:alpha="0.85"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="停止"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_stop" />
+    </LinearLayout>
+
+    <!-- 右下角：回放入口 -->
+    <ImageButton
+        android:id="@+id/btnPlayback"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="18dp"
+        android:alpha="0.6"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="回放"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_play_circle"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 全屏预览层：点击某个预览格进入，左上角半透明返回 -->
+    <FrameLayout
+        android:id="@+id/fullscreenOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="gone">
+
+        <TextureView
+            android:id="@+id/fsPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/fsLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="10dp"
+            android:background="#66000000"
+            android:paddingStart="10dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="3dp"
+            android:text="CAM"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp" />
+
+        <!-- 录制指示灯 -->
+        <View
+            android:id="@+id/fsRecDot"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="12dp"
+            android:background="@color/dot_rec"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btnFsBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="14dp"
+            android:alpha="0.55"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_back" />
+    </FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

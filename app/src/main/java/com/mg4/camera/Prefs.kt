@@ -1,0 +1,91 @@
+package com.mg4.camera
+
+import android.content.Context
+
+/** 全局配置存取 */
+object Prefs {
+    private const val NAME = "mg4_camera"
+    private const val KEY_CAMERAS = "selected_cameras"
+    private const val KEY_RES = "resolution"
+    private const val KEY_AUTO = "auto_start"
+    private const val KEY_STORAGE = "storage_path"
+    private const val KEY_ZOOM_SINGLE = "zoom_single"
+    private const val KEY_ZOOM_FULLSCREEN = "zoom_fullscreen"
+    private const val KEY_ZOOM_DUAL = "zoom_dual"
+    private const val KEY_ZOOM_TRIPLE = "zoom_triple"
+    private const val KEY_ASPECT = "preview_aspect"
+
+    const val RES_720 = 0
+    const val RES_480 = 1
+
+    /** 预览/录像画幅：16:9（默认）/ 4:3（部分鱼眼 HAL 的完整圆画面在 4:3 缓冲内） */
+    const val ASPECT_169 = 0
+    const val ASPECT_43 = 1
+
+    /** 双路/三路缩放默认值（实测标定） */
+    const val DEFAULT_ZOOM_DUAL = 1.2f
+    const val DEFAULT_ZOOM_TRIPLE = 1.8f
+
+    private fun sp(ctx: Context) = ctx.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+
+    fun selectedCameras(ctx: Context): List<String> =
+        sp(ctx).getStringSet(KEY_CAMERAS, null)?.filterNotNull()?.sorted() ?: emptyList()
+
+    fun setSelectedCameras(ctx: Context, ids: Collection<String>): Boolean =
+        sp(ctx).edit().putStringSet(KEY_CAMERAS, HashSet(ids)).commit()
+
+    fun resolution(ctx: Context): Int = sp(ctx).getInt(KEY_RES, RES_720)
+
+    fun setResolution(ctx: Context, res: Int): Boolean =
+        sp(ctx).edit().putInt(KEY_RES, res).commit()
+
+    fun autoStart(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_AUTO, false)
+
+    fun setAutoStart(ctx: Context, value: Boolean): Boolean =
+        sp(ctx).edit().putBoolean(KEY_AUTO, value).commit()
+
+    /** 录像存储根目录（直连路径，如 /storage/1F13-3D4D） */
+    fun storagePath(ctx: Context): String? = sp(ctx).getString(KEY_STORAGE, null)
+
+    fun setStoragePath(ctx: Context, path: String): Boolean =
+        sp(ctx).edit().putString(KEY_STORAGE, path).commit()
+
+    // ---------------- 预览缩放（单路/全屏/双路/三路独立设置，用户可调） ----------------
+
+    private fun zoom(ctx: Context, key: String, def: Float): Float =
+        try {
+            sp(ctx).getFloat(key, def).coerceIn(0.5f, 3.0f)
+        } catch (_: Exception) {
+            def
+        }
+
+    private fun setZoom(ctx: Context, key: String, v: Float): Boolean =
+        sp(ctx).edit().putFloat(key, v.coerceIn(0.5f, 3.0f)).commit()
+
+    /** 单路预览缩放（1.0 = 完整显示缓冲） */
+    fun zoomSingle(ctx: Context): Float = zoom(ctx, KEY_ZOOM_SINGLE, 1.0f)
+
+    fun setZoomSingle(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_SINGLE, v)
+
+    /** 全屏预览缩放（1.0 = 完整显示缓冲） */
+    fun zoomFullscreen(ctx: Context): Float = zoom(ctx, KEY_ZOOM_FULLSCREEN, 1.0f)
+
+    fun setZoomFullscreen(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_FULLSCREEN, v)
+
+    /** 双路预览缩放（基于 cover 铺满，1.2 为实测合适值） */
+    fun zoomDual(ctx: Context): Float = zoom(ctx, KEY_ZOOM_DUAL, 1.2f)
+
+    fun setZoomDual(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_DUAL, v)
+
+    /** 三路及以上预览缩放（基于 cover 铺满，1.8 为实测合适值） */
+    fun zoomTriple(ctx: Context): Float = zoom(ctx, KEY_ZOOM_TRIPLE, 1.8f)
+
+    fun setZoomTriple(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_TRIPLE, v)
+
+    // ---------------- 预览画幅 ----------------
+
+    fun aspect(ctx: Context): Int = sp(ctx).getInt(KEY_ASPECT, ASPECT_169)
+
+    fun setAspect(ctx: Context, value: Int): Boolean =
+        sp(ctx).edit().putInt(KEY_ASPECT, value).commit()
+}

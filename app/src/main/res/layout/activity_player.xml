@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 半透明返回按钮（车机无手势返回/返回键） -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="14dp"
+        android:alpha="0.55"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="返回"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_back" />
+
+    <!-- 倍速按钮 -->
+    <Button
+        android:id="@+id/btnSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:alpha="0.8"
+        android:background="@color/panel"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="1.0x"
+        android:textColor="@color/text_primary" />
+
+</FrameLayout>

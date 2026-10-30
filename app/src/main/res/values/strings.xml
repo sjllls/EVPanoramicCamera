@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">全景行车记录仪</string>
+    <string name="title_main">全景行车记录仪</string>
+    <string name="recording">录制中</string>
+    <string name="paused">已暂停</string>
+    <string name="need_camera_permission">需要相机权限才能录制</string>
+    <string name="need_storage">请先选择录像存储目录</string>
+    <string name="select_camera_folder">选择摄像头文件夹</string>
+</resources>
