@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
 
     private lateinit var btnRecord: ImageButton
     private lateinit var btnPause: ImageButton
-    private lateinit var btnStop: ImageButton
     private lateinit var tvStatus: TextView
 
     private val selectedIds: List<String> get() = Prefs.selectedCameras(this)
@@ -88,7 +87,6 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         tvStatus.text = ""
         btnRecord = findViewById(R.id.btnRecord)
         btnPause = findViewById(R.id.btnPause)
-        btnStop = findViewById(R.id.btnStop)
 
         findViewById<ImageButton>(R.id.btnSettings).setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -118,7 +116,12 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
                 tvStatus.setText(R.string.paused)
             }
         }
-        btnStop.setOnClickListener { stopRecording() }
+
+        // 容量显示：开新分段前 StorageManager 会触发回调（可能来自摄像头后台线程）
+        storage.usageListener = {
+            clockHandler.post { refreshCapacity() }
+        }
+        refreshCapacity()
 
         initFullscreenOverlay()
         requestPermissions()
@@ -709,6 +712,8 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
             showStorageDialog()
             return
         }
+        // 清理上次异常断电/死机残留的 .part 临时分段（未正常收尾、不可播放）
+        storage.cleanupIncomplete()
         manager.startAll(selectedIds)
         RecordingService.start(this, true)
         tvStatus.setText(R.string.recording)
@@ -720,6 +725,25 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         RecordingService.start(this, false)
         tvStatus.text = ""
         updateButtons()
+        // 停止录制后刷新容量显示（最后一个分段此刻刚完成落盘）
+        refreshCapacity()
+    }
+
+    // -------------------------------------------------- 标题旁存储容量
+
+    /** 刷新"已用 xx GB/总共 xx GB"显示（需在主线程调用） */
+    private fun refreshCapacity() {
+        val tv = findViewById<android.widget.TextView>(R.id.tvCapacity) ?: return
+        val u = storage.usage()
+        tv.text = if (u == null) {
+            "" // 未设置存储位置时不显示
+        } else {
+            val gb = 1024.0 * 1024.0 * 1024.0
+            String.format(
+                java.util.Locale.US, "已用 %.1f GB/总共 %.1f GB",
+                u.usedBytes / gb, u.totalBytes / gb
+            )
+        }
     }
 
     private fun maybeAutoStart() {
@@ -732,7 +756,6 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         val recording = manager.isRecording
         btnRecord.setImageResource(if (recording) R.drawable.ic_stop else R.drawable.ic_play_circle)
         btnPause.alpha = if (recording) 0.9f else 0.35f
-        btnStop.alpha = if (recording) 0.9f else 0.35f
     }
 
     // ---------------- RecordingManager.Listener ----------------

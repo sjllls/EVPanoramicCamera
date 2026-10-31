@@ -43,6 +43,18 @@
         app:layout_constraintStart_toEndOf="@id/tvStatus"
         app:layout_constraintTop_toTopOf="@id/tvTitle" />
 
+    <!-- 时间旁的存储容量（已用/总共），启动、开新分段前、停止录制后刷新 -->
+    <TextView
+        android:id="@+id/tvCapacity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toEndOf="@id/tvClock"
+        app:layout_constraintTop_toTopOf="@id/tvTitle" />
+
     <!-- 右上角：半透明设置按钮 -->
     <ImageButton
         android:id="@+id/btnSettings"
@@ -94,26 +106,15 @@
             android:scaleType="fitCenter"
             android:src="@drawable/ic_pause" />
 
-        <!-- 录制主按钮 -->
+        <!-- 录制主按钮：未录制=开始，录制中=停止（切换键，无独立停止按钮） -->
         <ImageButton
             android:id="@+id/btnRecord"
             android:layout_width="72dp"
             android:layout_height="72dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="开始录制"
+            android:contentDescription="开始/停止录制"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_play_circle" />
-
-        <ImageButton
-            android:id="@+id/btnStop"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_marginStart="28dp"
-            android:alpha="0.85"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="停止"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_stop" />
     </LinearLayout>
 
     <!-- 右下角：回放入口 -->

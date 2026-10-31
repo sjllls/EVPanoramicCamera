@@ -31,6 +31,15 @@ class StorageManager(private val context: Context) {
     companion object {
         /** 默认录像子目录：选定存储位置后，实际使用 <所选路径>/Carsight */
         const val CARSIGHT_DIR = "Carsight"
+
+        /**
+         * 循环写入阈值：录像目录所在卷剩余容量低于该值时，
+         * 自动从各摄像头目录删除文件名最早（即时间最早）的录像文件。
+         */
+        const val MIN_FREE_BYTES = 1L shl 30 // 1GB
+
+        /** 录像分段写盘时的临时扩展名：正常结束才改名为 .mp4；断电残留的 .part 启动时清理 */
+        const val PART_SUFFIX = ".part"
     }
 
     fun selectedPath(): String? = Prefs.storagePath(context)
@@ -176,6 +185,25 @@ class StorageManager(private val context: Context) {
         false
     }
 
+    // ------------------------------------------------------------ 容量信息
+
+    data class Usage(val usedBytes: Long, val totalBytes: Long)
+
+    /** 容量变化回调：主界面刷新"已用/总共"显示（可能在摄像头后台线程触发，监听方自行切主线程） */
+    var usageListener: (() -> Unit)? = null
+
+    /** 存储卷容量（used = 总量 - 剩余），未设置存储位置返回 null */
+    fun usage(): Usage? {
+        val r = root() ?: return null
+        return try {
+            val s = StatFs(r.absolutePath)
+            val total = s.totalBytes
+            Usage(total - s.availableBytes, total)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     // ------------------------------------------------------------ 录像文件
 
     /** 获取（或创建）某路摄像头的存储文件夹，文件夹名为 cameraId */
@@ -201,6 +229,53 @@ class StorageManager(private val context: Context) {
             f = File(dir, "CAM$cameraId-$stamp-${seq++}.mp4")
         }
         return f
+    }
+
+    /**
+     * 循环写入：录像目录所在卷剩余容量不足 [MIN_FREE_BYTES] 时，
+     * 从每个摄像头目录轮流删除文件名最早（时间最早）的录像文件，
+     * 直到剩余容量达标或无可删除文件。每个目录始终保留最新的 1 个文件
+     * （通常是正在录制的分段），避免删到当前写入中的文件。
+     * 在开启新的分段文件之前调用。
+     */
+    fun enforceFreeSpace() {
+        val r = root() ?: return
+        var guard = 0
+        while (usableSpace(r) < MIN_FREE_BYTES && guard++ < 10000) {
+            var deleted = false
+            listCameraDirs().forEach { d ->
+                if (usableSpace(r) >= MIN_FREE_BYTES) return@forEach
+                val files = d.listFiles()
+                    ?.filter { it.isFile && it.name.endsWith(".mp4") }
+                    ?.sortedBy { it.name } // 文件名即时间序，最早 = 最小
+                    ?: return@forEach
+                if (files.size <= 1) return@forEach // 仅剩最新文件，不删
+                if (try { files.first().delete() } catch (_: Exception) { false }) {
+                    android.util.Log.i("MG4Storage", "循环写入：空间不足，已删除 ${files.first().absolutePath}")
+                    deleted = true
+                }
+            }
+            if (!deleted) break
+        }
+        // 容量可能已变化（删了旧文件 / 即将写入新分段），通知主界面刷新显示
+        try { usageListener?.invoke() } catch (_: Exception) {}
+    }
+
+    /**
+     * 清理异常断电/死机/强杀残留的 .part 临时分段（未正常收尾，mp4 索引不完整、不可播放）。
+     * 在 App 启动、录制开始前调用一次。
+     */
+    fun cleanupIncomplete() {
+        listCameraDirs().forEach { d ->
+            d.listFiles()?.forEach { f ->
+                if (f.isFile && f.name.endsWith(PART_SUFFIX)) {
+                    try {
+                        if (f.delete()) android.util.Log.i("MG4Storage", "清理未完成分段：${f.absolutePath}")
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
     }
 
     /** 回放：列出所有摄像头文件夹 */

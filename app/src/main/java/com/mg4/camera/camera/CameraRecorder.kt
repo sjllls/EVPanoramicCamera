@@ -26,6 +26,8 @@ import android.media.Image
 import android.media.ImageReader
 import com.mg4.camera.Prefs
 import com.mg4.camera.StorageManager
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import kotlin.math.abs
 
@@ -395,14 +397,20 @@ class CameraRecorder(
             android.util.Log.i(TAG, "encoder started: mime=$mime ${width}x$height")
             muxer = MuxerWrapper(
                 opener = {
+                    // 循环写入：开新分段前检查剩余容量，不足 1G 自动删除各目录最早录像
+                    storage.enforceFreeSpace()
                     val f = storage.createSegmentFile(cameraId)
                         ?: throw IOException("无法创建录像文件（请检查存储位置设置）")
+                    // 写入 .part 临时文件，分段正常结束（muxer stop 成功）后才改名为 .mp4：
+                    // 断电/死机/强杀只残留 .part（启动时清理），回放列表永远是完整可播放文件
+                    val part = File(f.parentFile, f.name + StorageManager.PART_SUFFIX)
+                    val fos = FileOutputStream(part)
                     val m = android.media.MediaMuxer(
-                        f.absolutePath,
+                        fos.fd,
                         android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4
                     )
                     if (rotation != Rotation.D0) m.setOrientationHint(rotation.degrees)
-                    MuxerWrapper.MuxerHandle(m, f.absolutePath)
+                    MuxerWrapper.MuxerHandle(m, f.absolutePath, fos, part.absolutePath)
                 },
                 maxSegmentUs = SEGMENT_US
             )
