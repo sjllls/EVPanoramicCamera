@@ -31,6 +31,18 @@
         app:layout_constraintStart_toEndOf="@id/tvTitle"
         app:layout_constraintTop_toTopOf="@id/tvTitle" />
 
+    <!-- 标题旁的系统实时时间（精确到秒，每秒刷新） -->
+    <TextView
+        android:id="@+id/tvClock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="36dp"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@id/tvTitle"
+        app:layout_constraintStart_toEndOf="@id/tvStatus"
+        app:layout_constraintTop_toTopOf="@id/tvTitle" />
+
     <!-- 右上角：半透明设置按钮 -->
     <ImageButton
         android:id="@+id/btnSettings"

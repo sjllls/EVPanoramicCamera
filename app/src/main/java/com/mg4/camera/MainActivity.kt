@@ -124,6 +124,28 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         requestPermissions()
     }
 
+    // -------------------------------------------------- 标题旁实时时间
+
+    private val clockHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val clockFormat = java.text.SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", java.util.Locale.US)
+    private val clockTick = object : Runnable {
+        override fun run() {
+            findViewById<android.widget.TextView>(R.id.tvClock)?.text =
+                clockFormat.format(java.util.Date())
+            clockHandler.postDelayed(this, 1000L)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        clockTick.run()
+    }
+
+    override fun onPause() {
+        clockHandler.removeCallbacks(clockTick)
+        super.onPause()
+    }
+
     /** 车机无手势返回/返回键：隐藏状态栏与导航栏，实现全屏沉浸 */
     private fun hideSystemBars() {
         @Suppress("DEPRECATION")

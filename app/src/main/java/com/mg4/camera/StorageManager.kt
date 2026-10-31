@@ -188,20 +188,19 @@ class StorageManager(private val context: Context) {
 
     /**
      * 创建下一个分段录像文件。
-     * 命名：yyyyMMdd-cameraId-序号.mp4，序号在同日内递增。
+     * 命名：CAM<cameraId>-录制起始时间.mp4，时间精确到秒（纯数字 年-月-日-时-分-秒），
+     * 如 CAM1-2026-10-30-22-55-03.mp4，文件名即实现时间追溯；
+     * 定宽零填充保证按名称排序即为时间排序。同秒重名时追加 -1、-2 序号兜底。
      */
     fun createSegmentFile(cameraId: String): File? {
         val dir = cameraDir(cameraId) ?: return null
-        val date = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
-        val prefix = "$date-$cameraId-"
-        var maxSeq = 0
-        dir.listFiles()?.forEach { f ->
-            val n = f.name
-            if (n.startsWith(prefix) && n.endsWith(".mp4")) {
-                n.substring(prefix.length, n.length - 4).toIntOrNull()?.let { if (it > maxSeq) maxSeq = it }
-            }
+        val stamp = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US).format(Date())
+        var f = File(dir, "CAM$cameraId-$stamp.mp4")
+        var seq = 1
+        while (f.exists()) {
+            f = File(dir, "CAM$cameraId-$stamp-${seq++}.mp4")
         }
-        return File(dir, "$prefix${maxSeq + 1}.mp4")
+        return f
     }
 
     /** 回放：列出所有摄像头文件夹 */
