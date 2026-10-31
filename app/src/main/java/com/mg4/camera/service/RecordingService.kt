@@ -51,9 +51,13 @@ class RecordingService : Service() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
+            // intent 为 null 说明服务被系统杀死后重建（START_STICKY），
+            // 必须立即回到前台状态，否则会触发 ForegroundServiceDidNotStartInTime
+            null -> startForeground(NOTIF_ID, buildNotification())
             else -> startForeground(NOTIF_ID, buildNotification())
         }
-        return START_NOT_STICKY
+        // START_STICKY：录制期间被系统杀死后自动拉起，尽量保证后台采集不中断
+        return START_STICKY
     }
 
     private fun buildNotification(): Notification {

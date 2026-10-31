@@ -40,6 +40,16 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
          * 若个别机型仍偏转，可微调此值（+90 为顺时针 90°）。
          */
         const val ROTATION_CALIBRATION = 0
+
+        /** 未录制时切入后台：延迟多久释放摄像头（毫秒） */
+        const val BG_RELEASE_DELAY_MS = 3000L
+
+        /**
+         * 自动开始录制的延时（毫秒）。
+         * App 启动到获取多路摄像头信号需要一定时间，且启动期硬件负载高，
+         * 立即开录有小概率导致某路 cam 无法打开而报 error，故延时等待就绪。
+         */
+        const val AUTO_START_DELAY_MS = 3000L
     }
 
     private lateinit var storage: StorageManager
@@ -139,13 +149,49 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         }
     }
 
+    // ---------------- 前后台切换：未录制时后台释放摄像头 ----------------
+
+    private val lifecycleHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** 是否处于前台（用于抑制后台时的错误气泡） */
+    private var resumed = false
+
+    /** 后台释放后置 true，回到前台时据此重建摄像头会话 */
+    private var camsReleased = false
+
+    private val bgReleaseTask = Runnable {
+        if (!manager.isRecording) {
+            manager.stopAll()
+            manager.releaseAll()
+            camsReleased = true
+            android.util.Log.i("MG4Lifecycle", "App 后台超过 ${BG_RELEASE_DELAY_MS / 1000} 秒且未在录制，已释放全部摄像头")
+        }
+    }
+
     override fun onResume() {
         super.onResume()
+        resumed = true
         clockTick.run()
+        // 回到前台：取消后台释放；若摄像头已被释放则重新获取信号
+        lifecycleHandler.removeCallbacks(bgReleaseTask)
+        if (camsReleased) {
+            camsReleased = false
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                reacquireCameras()
+            }
+        }
     }
 
     override fun onPause() {
+        resumed = false
         clockHandler.removeCallbacks(clockTick)
+        // 未录制时切入后台：延迟 3 秒释放全部摄像头，
+        // 避免车机平台主动停 cam 后 App 收不到信号而误报错误
+        if (!manager.isRecording && !isFinishing) {
+            lifecycleHandler.postDelayed(bgReleaseTask, BG_RELEASE_DELAY_MS)
+        }
         super.onPause()
     }
 
@@ -262,12 +308,17 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     }
 
     private fun initIfNeeded() {
+        reacquireCameras()
+        // 启动时不再强制设置存储位置；仅在开始录制时提示
+        maybeAutoStart()
+    }
+
+    /** （重新）采集摄像头元数据并重建预览，重新打开全部摄像头会话 */
+    private fun reacquireCameras() {
         // 采集每路摄像头的传感器方向 / 镜像信息
         camMeta.clear()
         CameraScanner.detect(this).forEach { camMeta[it.id] = it }
         buildPreviews()
-        // 启动时不再强制设置存储位置；仅在开始录制时提示
-        maybeAutoStart()
     }
 
     private fun buildPreviews() {
@@ -747,7 +798,22 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     }
 
     private fun maybeAutoStart() {
-        if (Prefs.autoStart(this) && !manager.isRecording && selectedIds.isNotEmpty() && storage.hasStorage()) {
+        if (!Prefs.autoStart(this) || manager.isRecording) return
+        if (selectedIds.isEmpty() || !storage.hasStorage()) return
+        // 延时自动开录：等待多路摄像头就绪、避开启动期硬件负载高峰
+        lifecycleHandler.removeCallbacks(autoStartTask)
+        lifecycleHandler.postDelayed(autoStartTask, AUTO_START_DELAY_MS)
+        Toast.makeText(
+            this,
+            "等待摄像头就绪，${AUTO_START_DELAY_MS / 1000} 秒后自动开始录制",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private val autoStartTask = Runnable {
+        if (Prefs.autoStart(this) && !manager.isRecording &&
+            selectedIds.isNotEmpty() && storage.hasStorage()
+        ) {
             startRecording()
         }
     }
@@ -773,7 +839,11 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     override fun onError(cameraId: String, message: String) {
         // 回调可能来自摄像头/编码线程，必须切回主线程才能更新 UI
         runOnUiThread {
-            Toast.makeText(this, "CAM $cameraId: $message", Toast.LENGTH_SHORT).show()
+            // App 在后台时（如平台回收 cam 期间）不弹气泡，避免误导用户；
+            // 回前台重建会话后自然恢复
+            if (resumed) {
+                Toast.makeText(this, "CAM $cameraId: $message", Toast.LENGTH_SHORT).show()
+            }
             // 在对应预览格上标注错误状态，其它路不受影响
             labels[cameraId]?.let {
                 it.text = "CAM $cameraId ⚠"
@@ -794,6 +864,8 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     }
 
     override fun onDestroy() {
+        lifecycleHandler.removeCallbacks(bgReleaseTask)
+        lifecycleHandler.removeCallbacks(autoStartTask)
         manager.releaseAll()
         RecordingService.start(this, false)
         super.onDestroy()
