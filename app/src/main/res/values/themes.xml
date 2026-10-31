@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.MG4Cam" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        统一深色主题：父主题用纯暗色变体（不用 DayNight），
+        避免车机/手机系统浅色模式下对话框变白底、与 App 固定的白色文字冲突（白字白底看不清）。
+        所有 AlertDialog 继承本主题，自动为深色。
+    -->
+    <style name="Theme.MG4Cam" parent="Theme.MaterialComponents.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="colorPrimary">@color/primary</item>
         <item name="colorSecondary">@color/accent</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
     </style>
 </resources>

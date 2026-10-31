@@ -507,13 +507,18 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         var current: File? = null
         var navRows: List<Pair<String, File?>> = emptyList()
 
-        val listView = android.widget.ListView(ctx)
-        val adapter = android.widget.ArrayAdapter<String>(ctx, android.R.layout.simple_list_item_1)
+        val listView = android.widget.ListView(ctx).apply {
+            // 显式深色背景：即使系统为浅色模式，对话框内列表也保持深色可读
+            setBackgroundColor(0xFF1A1F26.toInt())
+            divider = null
+        }
+        val adapter = android.widget.ArrayAdapter<String>(ctx, R.layout.item_dialog_row)
         listView.adapter = adapter
 
         val tvPath = TextView(ctx).apply {
             setPadding(64, 24, 64, 16)
             setTextIsSelectable(false)
+            setTextColor(0xFFFFFFFF.toInt())
         }
 
         fun freeBytesOf(f: File): Long = try {
@@ -634,6 +639,8 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
                 val input = EditText(ctx).apply {
                     hint = "新文件夹名称"
                     isSingleLine = true
+                    setTextColor(0xFFFFFFFF.toInt())
+                    setHintTextColor(0xFF90A4AE.toInt())
                 }
                 AlertDialog.Builder(ctx)
                     .setTitle("在 ${dir.name} 下新建文件夹")
@@ -665,6 +672,8 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
                 hint = "例如 /storage/1F13-3D4D"
                 isSingleLine = true
                 setText(current?.absolutePath ?: "")
+                setTextColor(0xFFFFFFFF.toInt())
+                setHintTextColor(0xFF90A4AE.toInt())
             }
             AlertDialog.Builder(ctx)
                 .setTitle("手动输入路径")

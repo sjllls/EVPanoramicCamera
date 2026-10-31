@@ -13,8 +13,8 @@ android {
         // targetSdk 29 + requestLegacyExternalStorage：
         // Android 10/11 车机保持传统外部存储视图，支持直连 /storage/<UUID> 外置硬盘写入
         targetSdk 29
-        versionCode 18
-        versionName "2.7"
+        versionCode 19
+        versionName "2.8"
         // 骁龙 8155 为 arm64 平台
         ndk { abiFilters 'arm64-v8a' }
     }
