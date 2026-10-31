@@ -29,9 +29,11 @@ object Prefs {
     const val LOOP_FIXED = "fixed"
     const val LOOP_PERCENT = "percent"
 
-    /** 双路/三路缩放默认值（实测标定） */
-    const val DEFAULT_ZOOM_DUAL = 1.2f
-    const val DEFAULT_ZOOM_TRIPLE = 1.8f
+    /** 单路/全屏/双路/三路缩放默认值（实测标定） */
+    const val DEFAULT_ZOOM_SINGLE = 0.8f
+    const val DEFAULT_ZOOM_FULLSCREEN = 0.7f
+    const val DEFAULT_ZOOM_DUAL = 1.3f
+    const val DEFAULT_ZOOM_TRIPLE = 2.0f
 
     private fun sp(ctx: Context) = ctx.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
@@ -69,23 +71,23 @@ object Prefs {
     private fun setZoom(ctx: Context, key: String, v: Float): Boolean =
         sp(ctx).edit().putFloat(key, v.coerceIn(0.5f, 3.0f)).commit()
 
-    /** 单路预览缩放（1.0 = 完整显示缓冲） */
-    fun zoomSingle(ctx: Context): Float = zoom(ctx, KEY_ZOOM_SINGLE, 1.0f)
+    /** 单路预览缩放 */
+    fun zoomSingle(ctx: Context): Float = zoom(ctx, KEY_ZOOM_SINGLE, DEFAULT_ZOOM_SINGLE)
 
     fun setZoomSingle(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_SINGLE, v)
 
-    /** 全屏预览缩放（1.0 = 完整显示缓冲） */
-    fun zoomFullscreen(ctx: Context): Float = zoom(ctx, KEY_ZOOM_FULLSCREEN, 1.0f)
+    /** 全屏预览缩放 */
+    fun zoomFullscreen(ctx: Context): Float = zoom(ctx, KEY_ZOOM_FULLSCREEN, DEFAULT_ZOOM_FULLSCREEN)
 
     fun setZoomFullscreen(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_FULLSCREEN, v)
 
-    /** 双路预览缩放（基于 cover 铺满，1.2 为实测合适值） */
-    fun zoomDual(ctx: Context): Float = zoom(ctx, KEY_ZOOM_DUAL, 1.2f)
+    /** 双路预览缩放 */
+    fun zoomDual(ctx: Context): Float = zoom(ctx, KEY_ZOOM_DUAL, DEFAULT_ZOOM_DUAL)
 
     fun setZoomDual(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_DUAL, v)
 
-    /** 三路及以上预览缩放（基于 cover 铺满，1.8 为实测合适值） */
-    fun zoomTriple(ctx: Context): Float = zoom(ctx, KEY_ZOOM_TRIPLE, 1.8f)
+    /** 三路及以上预览缩放 */
+    fun zoomTriple(ctx: Context): Float = zoom(ctx, KEY_ZOOM_TRIPLE, DEFAULT_ZOOM_TRIPLE)
 
     fun setZoomTriple(ctx: Context, v: Float): Boolean = setZoom(ctx, KEY_ZOOM_TRIPLE, v)
 

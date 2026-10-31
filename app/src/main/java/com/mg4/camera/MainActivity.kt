@@ -383,7 +383,7 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         val contentH = if (swapped) bufferW else bufferH
 
         // 缩放策略（分档倍率在设置中由用户独立调节，Prefs 默认：
-        // 单路 1.0 / 全屏 1.0 / 双路 1.2 / 三路 1.8）：
+        // 单路 0.8 / 全屏 0.7 / 双路 1.3 / 三路 2.0）：
         //   全屏/单路 → contain（完整显示缓冲）为基准；双路/三路 → cover（铺满）为基准
         val n = max(previewViews.size, 1)
         val contain = fullscreenId == id || n <= 1

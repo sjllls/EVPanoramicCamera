@@ -144,8 +144,8 @@ class SettingsSheet : DialogFragment() {
         })
 
         v.findViewById<Button>(R.id.btnZoomReset).setOnClickListener {
-            bindZoom(sbSingle, tvSingle, 1.0f)
-            bindZoom(sbFs, tvFs, 1.0f)
+            bindZoom(sbSingle, tvSingle, Prefs.DEFAULT_ZOOM_SINGLE)
+            bindZoom(sbFs, tvFs, Prefs.DEFAULT_ZOOM_FULLSCREEN)
             bindZoom(sbDual, tvDual, Prefs.DEFAULT_ZOOM_DUAL)
             bindZoom(sbTriple, tvTriple, Prefs.DEFAULT_ZOOM_TRIPLE)
             rbAspect169.isChecked = true
