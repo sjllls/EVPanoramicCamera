@@ -45,6 +45,23 @@ class StorageManager(private val context: Context) {
     fun selectedPath(): String? = Prefs.storagePath(context)
 
     /**
+     * 当前设置的循环写入阈值（字节）。
+     * - 固定容量模式：设置里的 GB 值
+     * - 百分比模式：录像根目录所在卷 总容量 × 百分比
+     *   （总容量读不到时回退到默认 1GB，保证循环清理不会失效）
+     */
+    fun minFreeBytes(): Long {
+        return when (Prefs.loopMode(context)) {
+            Prefs.LOOP_PERCENT -> {
+                val r = root() ?: return MIN_FREE_BYTES
+                val total = try { r.totalSpace } catch (_: Exception) { 0L }
+                if (total > 0) total * Prefs.loopPercent(context) / 100L else MIN_FREE_BYTES
+            }
+            else -> Prefs.loopFixedGb(context).toLong() shl 30
+        }
+    }
+
+    /**
      * 设置存储位置。默认在所选路径下新建 Carsight 子目录作为录像根目录
      * （已有同名文件夹则直接使用，不重复创建）；若所选路径本身已叫 Carsight 则原样使用。
      */
@@ -240,11 +257,12 @@ class StorageManager(private val context: Context) {
      */
     fun enforceFreeSpace() {
         val r = root() ?: return
+        val minFree = minFreeBytes()
         var guard = 0
-        while (usableSpace(r) < MIN_FREE_BYTES && guard++ < 10000) {
+        while (usableSpace(r) < minFree && guard++ < 10000) {
             var deleted = false
             listCameraDirs().forEach { d ->
-                if (usableSpace(r) >= MIN_FREE_BYTES) return@forEach
+                if (usableSpace(r) >= minFree) return@forEach
                 val files = d.listFiles()
                     ?.filter { it.isFile && it.name.endsWith(".mp4") }
                     ?.sortedBy { it.name } // 文件名即时间序，最早 = 最小
