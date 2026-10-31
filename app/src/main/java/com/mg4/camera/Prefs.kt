@@ -14,6 +14,9 @@ object Prefs {
     private const val KEY_ZOOM_DUAL = "zoom_dual"
     private const val KEY_ZOOM_TRIPLE = "zoom_triple"
     private const val KEY_ASPECT = "preview_aspect"
+    private const val KEY_LOOP_MODE = "loop_mode"
+    private const val KEY_LOOP_GB = "loop_fixed_gb"
+    private const val KEY_LOOP_PCT = "loop_percent"
 
     const val RES_720 = 0
     const val RES_480 = 1
@@ -21,6 +24,10 @@ object Prefs {
     /** 预览/录像画幅：16:9（默认）/ 4:3（部分鱼眼 HAL 的完整圆画面在 4:3 缓冲内） */
     const val ASPECT_169 = 0
     const val ASPECT_43 = 1
+
+    /** 循环录制模式：固定剩余容量（GB）/ 总容量百分比 */
+    const val LOOP_FIXED = "fixed"
+    const val LOOP_PERCENT = "percent"
 
     /** 双路/三路缩放默认值（实测标定） */
     const val DEFAULT_ZOOM_DUAL = 1.2f
@@ -88,4 +95,27 @@ object Prefs {
 
     fun setAspect(ctx: Context, value: Int): Boolean =
         sp(ctx).edit().putInt(KEY_ASPECT, value).commit()
+
+    // ---------------- 循环录制阈值（固定剩余容量 / 总容量百分比） ----------------
+
+    /** 循环录制模式，默认固定容量 1GB（与旧版行为一致） */
+    fun loopMode(ctx: Context): String =
+        sp(ctx).getString(KEY_LOOP_MODE, LOOP_FIXED) ?: LOOP_FIXED
+
+    fun setLoopMode(ctx: Context, mode: String): Boolean =
+        sp(ctx).edit().putString(KEY_LOOP_MODE, mode).commit()
+
+    /** 固定容量阈值（GB），范围 1~50 */
+    fun loopFixedGb(ctx: Context): Int =
+        sp(ctx).getInt(KEY_LOOP_GB, 1).coerceIn(1, 50)
+
+    fun setLoopFixedGb(ctx: Context, gb: Int): Boolean =
+        sp(ctx).edit().putInt(KEY_LOOP_GB, gb.coerceIn(1, 50)).commit()
+
+    /** 百分比阈值（录像卷总容量的百分比），范围 5~50 */
+    fun loopPercent(ctx: Context): Int =
+        sp(ctx).getInt(KEY_LOOP_PCT, 10).coerceIn(5, 50)
+
+    fun setLoopPercent(ctx: Context, pct: Int): Boolean =
+        sp(ctx).edit().putInt(KEY_LOOP_PCT, pct.coerceIn(5, 50)).commit()
 }

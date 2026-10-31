@@ -103,12 +103,54 @@ class SettingsSheet : DialogFragment() {
         bindZoom(sbDual, tvDual, Prefs.zoomDual(ctx))
         bindZoom(sbTriple, tvTriple, Prefs.zoomTriple(ctx))
 
+        // 循环录制阈值：固定容量（GB）或总容量百分比（无输入法车机，滑块调节）
+        val rbLoopFixed = v.findViewById<RadioButton>(R.id.rbLoopFixed)
+        val rbLoopPercent = v.findViewById<RadioButton>(R.id.rbLoopPercent)
+        val sbLoop = v.findViewById<SeekBar>(R.id.sbLoop)
+        val tvLoop = v.findViewById<TextView>(R.id.tvLoop)
+
+        if (Prefs.loopMode(ctx) == Prefs.LOOP_PERCENT) rbLoopPercent.isChecked = true else rbLoopFixed.isChecked = true
+
+        val fixedToProgress: (Int) -> Int = { it - 1 }   // 1..50 GB -> 0..49
+        val progressToFixed: (Int) -> Int = { it + 1 }   // 0..49 -> 1..50 GB
+        val pctToProgress: (Int) -> Int = { it - 5 }     // 5..50 %  -> 0..45
+        val progressToPct: (Int) -> Int = { it + 5 }     // 0..45 -> 5..50 %
+
+        fun refreshLoop() {
+            if (rbLoopPercent.isChecked) {
+                sbLoop.max = 45
+                sbLoop.progress = pctToProgress(Prefs.loopPercent(ctx))
+                tvLoop.text = Prefs.loopPercent(ctx).toString() + " %"
+            } else {
+                sbLoop.max = 49
+                sbLoop.progress = fixedToProgress(Prefs.loopFixedGb(ctx))
+                tvLoop.text = Prefs.loopFixedGb(ctx).toString() + " GB"
+            }
+        }
+        refreshLoop()
+        rbLoopFixed.setOnClickListener { if (!rbLoopFixed.isChecked) rbLoopFixed.isChecked = true; refreshLoop() }
+        rbLoopPercent.setOnClickListener { if (!rbLoopPercent.isChecked) rbLoopPercent.isChecked = true; refreshLoop() }
+        sbLoop.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (rbLoopPercent.isChecked) {
+                    tvLoop.text = progressToPct(progress).toString() + " %"
+                } else {
+                    tvLoop.text = progressToFixed(progress).toString() + " GB"
+                }
+            }
+
+            override fun onStartTrackingTouch(s: SeekBar?) {}
+            override fun onStopTrackingTouch(s: SeekBar?) {}
+        })
+
         v.findViewById<Button>(R.id.btnZoomReset).setOnClickListener {
             bindZoom(sbSingle, tvSingle, 1.0f)
             bindZoom(sbFs, tvFs, 1.0f)
             bindZoom(sbDual, tvDual, Prefs.DEFAULT_ZOOM_DUAL)
             bindZoom(sbTriple, tvTriple, Prefs.DEFAULT_ZOOM_TRIPLE)
             rbAspect169.isChecked = true
+            rbLoopFixed.isChecked = true
+            refreshLoop()
         }
 
         val swAuto = v.findViewById<Switch>(R.id.swAutoStart)
@@ -135,8 +177,12 @@ class SettingsSheet : DialogFragment() {
                 ctx,
                 if (rbAspect43.isChecked) Prefs.ASPECT_43 else Prefs.ASPECT_169
             )
+            val loopMode = if (rbLoopPercent.isChecked) Prefs.LOOP_PERCENT else Prefs.LOOP_FIXED
+            val okLoop = Prefs.setLoopMode(ctx, loopMode) &&
+                    (if (rbLoopPercent.isChecked) Prefs.setLoopPercent(ctx, progressToPct(sbLoop.progress))
+                     else Prefs.setLoopFixedGb(ctx, progressToFixed(sbLoop.progress)))
 
-            if (okCameras && okRes && okAuto && okZoom && okAspect) {
+            if (okCameras && okRes && okAuto && okZoom && okAspect && okLoop) {
                 Toast.makeText(ctx, "设置已保存", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(ctx, "设置保存失败，请重试", Toast.LENGTH_LONG).show()
