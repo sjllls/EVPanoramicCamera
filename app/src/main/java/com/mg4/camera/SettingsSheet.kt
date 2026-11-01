@@ -156,6 +156,26 @@ class SettingsSheet : DialogFragment() {
         val swAuto = v.findViewById<Switch>(R.id.swAutoStart)
         swAuto.isChecked = Prefs.autoStart(ctx)
 
+        // 后台录制保活悬浮窗：默认开启；未授权"显示在其他应用上层"时给出引导入口
+        val swKeepAlive = v.findViewById<Switch>(R.id.swKeepAlive)
+        swKeepAlive.isChecked = Prefs.keepAliveOverlay(ctx)
+        val btnOverlayPerm = v.findViewById<Button>(R.id.btnOverlayPerm)
+        if (!com.mg4.camera.service.KeepAliveOverlay.granted(ctx)) {
+            btnOverlayPerm.visibility = Button.VISIBLE
+            btnOverlayPerm.setOnClickListener {
+                try {
+                    startActivity(
+                        android.content.Intent(
+                            android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:${ctx.packageName}")
+                        )
+                    )
+                } catch (_: Exception) {
+                    Toast.makeText(ctx, "请到系统设置中授予\"显示在其他应用上层\"权限", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
         v.findViewById<Button>(R.id.btnApply).setOnClickListener {
             // 相机勾选为空（或未检测到摄像头）时保留原选择，其余设置照常保存
             val chosen = boxes.filter { it.value.isChecked }.keys
@@ -166,7 +186,8 @@ class SettingsSheet : DialogFragment() {
             }
             val okCameras = Prefs.setSelectedCameras(ctx, toSave)
             val okRes = Prefs.setResolution(ctx, if (rb480.isChecked) Prefs.RES_480 else Prefs.RES_720)
-            val okAuto = Prefs.setAutoStart(ctx, swAuto.isChecked)
+            val okAuto = Prefs.setAutoStart(ctx, swAuto.isChecked) &&
+                    Prefs.setKeepAliveOverlay(ctx, swKeepAlive.isChecked)
 
             // 画面缩放：直接取滑块值（0.5~3.0，步进 0.1）
             val okZoom = Prefs.setZoomSingle(ctx, progressToZoom(sbSingle.progress)) &&

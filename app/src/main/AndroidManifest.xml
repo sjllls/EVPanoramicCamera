@@ -6,6 +6,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <!-- 后台录制保活：1 像素透明悬浮窗（提升进程优先级到"可见"级） -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 录制期间持有 WakeLock，防止车机休眠断流 -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 引导用户加入电池优化白名单 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- 传统外部存储：配合 targetSdk 29 + requestLegacyExternalStorage，
          Android 9/10/11 车机均可直连写入 /storage/<UUID> 外置硬盘 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

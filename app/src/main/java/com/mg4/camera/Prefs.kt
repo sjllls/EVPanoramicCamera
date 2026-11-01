@@ -8,6 +8,7 @@ object Prefs {
     private const val KEY_CAMERAS = "selected_cameras"
     private const val KEY_RES = "resolution"
     private const val KEY_AUTO = "auto_start"
+    private const val KEY_KEEP_ALIVE = "keep_alive_overlay"
     private const val KEY_STORAGE = "storage_path"
     private const val KEY_ZOOM_SINGLE = "zoom_single"
     private const val KEY_ZOOM_FULLSCREEN = "zoom_fullscreen"
@@ -52,6 +53,12 @@ object Prefs {
 
     fun setAutoStart(ctx: Context, value: Boolean): Boolean =
         sp(ctx).edit().putBoolean(KEY_AUTO, value).commit()
+
+    /** 后台录制保活：录制中切后台时叠加 1 像素透明悬浮窗（默认开启） */
+    fun keepAliveOverlay(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_KEEP_ALIVE, true)
+
+    fun setKeepAliveOverlay(ctx: Context, value: Boolean): Boolean =
+        sp(ctx).edit().putBoolean(KEY_KEEP_ALIVE, value).commit()
 
     /** 录像存储根目录（直连路径，如 /storage/1F13-3D4D） */
     fun storagePath(ctx: Context): String? = sp(ctx).getString(KEY_STORAGE, null)

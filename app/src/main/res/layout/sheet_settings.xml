@@ -289,6 +289,25 @@
         android:text="应用启动后自动开始录制"
         android:textColor="@color/text_primary" />
 
+    <Switch
+        android:id="@+id/swKeepAlive"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="后台录制保活（1 像素透明悬浮窗，防杀）"
+        android:textColor="@color/text_primary" />
+
+    <Button
+        android:id="@+id/btnOverlayPerm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:backgroundTint="@color/panel"
+        android:text="悬浮窗权限未授权，点击去开启"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

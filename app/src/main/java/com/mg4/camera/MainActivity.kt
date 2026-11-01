@@ -1,6 +1,7 @@
 package com.mg4.camera
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
@@ -50,6 +51,9 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
          * 立即开录有小概率导致某路 cam 无法打开而报 error，故延时等待就绪。
          */
         const val AUTO_START_DELAY_MS = 3000L
+
+        /** 由 RecordingService 粘性重启时携带：进程被杀后自动恢复录制 */
+        const val EXTRA_RESUME_RECORDING = "extra_resume_recording"
     }
 
     private lateinit var storage: StorageManager
@@ -67,6 +71,12 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     private lateinit var tvStatus: TextView
 
     private val selectedIds: List<String> get() = Prefs.selectedCameras(this)
+
+    /** 进程被杀后由服务粘性重启拉起：就绪后延时自动恢复录制 */
+    private var resumeRequested = false
+
+    /** 本次会话是否已弹过电池优化白名单引导（避免反复打扰） */
+    private var batteryPromptShown = false
 
     // ---------------- 全屏预览 ----------------
     private lateinit var fsOverlay: View
@@ -88,6 +98,7 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        resumeRequested = intent?.getBooleanExtra(EXTRA_RESUME_RECORDING, false) ?: false
 
         storage = StorageManager(this)
         manager = RecordingManager(this, storage)
@@ -172,7 +183,8 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         super.onResume()
         resumed = true
         clockTick.run()
-        // 回到前台：取消后台释放；若摄像头已被释放则重新获取信号
+        // 回到前台：移除保活悬浮窗；取消后台释放；若摄像头已被释放则重新获取信号
+        com.mg4.camera.service.KeepAliveOverlay.hide(this)
         lifecycleHandler.removeCallbacks(bgReleaseTask)
         if (camsReleased) {
             camsReleased = false
@@ -187,12 +199,30 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     override fun onPause() {
         resumed = false
         clockHandler.removeCallbacks(clockTick)
-        // 未录制时切入后台：延迟 3 秒释放全部摄像头，
-        // 避免车机平台主动停 cam 后 App 收不到信号而误报错误
-        if (!manager.isRecording && !isFinishing) {
+        if (manager.isRecording) {
+            // 录制中切后台：叠加 1 像素透明悬浮窗把进程提升到"可见"级，防止被杀
+            if (Prefs.keepAliveOverlay(this)) {
+                com.mg4.camera.service.KeepAliveOverlay.show(this)
+            }
+        } else if (!isFinishing) {
+            // 未录制时切入后台：延迟 3 秒释放全部摄像头，
+            // 避免车机平台主动停 cam 后 App 收不到信号而误报错误
             lifecycleHandler.postDelayed(bgReleaseTask, BG_RELEASE_DELAY_MS)
         }
         super.onPause()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        // singleTask：服务粘性重启拉起时走这里，标记恢复录制
+        if (intent?.getBooleanExtra(EXTRA_RESUME_RECORDING, false) == true) {
+            resumeRequested = true
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED
+            ) {
+                initIfNeeded()
+            }
+        }
     }
 
     /** 车机无手势返回/返回键：隐藏状态栏与导航栏，实现全屏沉浸 */
@@ -310,7 +340,9 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     private fun initIfNeeded() {
         reacquireCameras()
         // 启动时不再强制设置存储位置；仅在开始录制时提示
-        maybeAutoStart()
+        // 进程被杀恢复（resumeRequested）时绕过自动录制开关强制调度
+        maybeAutoStart(force = resumeRequested)
+        resumeRequested = false
     }
 
     /** （重新）采集摄像头元数据并重建预览，重新打开全部摄像头会话 */
@@ -763,6 +795,7 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
             showStorageDialog()
             return
         }
+        maybeRequestBatteryExemption()
         // 清理上次异常断电/死机残留的 .part 临时分段（未正常收尾、不可播放）
         storage.cleanupIncomplete()
         manager.startAll(selectedIds)
@@ -771,8 +804,29 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         updateButtons()
     }
 
+    /**
+     * 引导加入电池优化白名单（每次 App 会话最多提示一次）：
+     * 部分车机 ROM 会对后台应用做电池优化式查杀，白名单可显著降低录制中被杀概率
+     */
+    private fun maybeRequestBatteryExemption() {
+        if (batteryPromptShown) return
+        batteryPromptShown = true
+        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+            try {
+                startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        android.net.Uri.parse("package:$packageName")
+                    )
+                )
+            } catch (_: Exception) {}
+        }
+    }
+
     private fun stopRecording() {
         manager.stopAll()
+        com.mg4.camera.service.KeepAliveOverlay.hide(this)
         RecordingService.start(this, false)
         tvStatus.text = ""
         updateButtons()
@@ -797,8 +851,9 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
         }
     }
 
-    private fun maybeAutoStart() {
-        if (!Prefs.autoStart(this) || manager.isRecording) return
+    private fun maybeAutoStart(force: Boolean = false) {
+        if (!force && !Prefs.autoStart(this)) return
+        if (manager.isRecording) return
         if (selectedIds.isEmpty() || !storage.hasStorage()) return
         // 延时自动开录：等待多路摄像头就绪、避开启动期硬件负载高峰
         lifecycleHandler.removeCallbacks(autoStartTask)
@@ -866,6 +921,7 @@ class MainActivity : AppCompatActivity(), RecordingManager.Listener, SettingsCal
     override fun onDestroy() {
         lifecycleHandler.removeCallbacks(bgReleaseTask)
         lifecycleHandler.removeCallbacks(autoStartTask)
+        com.mg4.camera.service.KeepAliveOverlay.hide(this)
         manager.releaseAll()
         RecordingService.start(this, false)
         super.onDestroy()
